@@ -1,0 +1,52 @@
+name: CI/CD Main Branch Deployment
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-deploy-main:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build application
+        run: npm run build || echo "No build script, skipping"
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.AWS_HOST }}
+          username: ${{ secrets.AWS_USER }}
+          key: ${{ secrets.AWS_KEY }}
+          script: |
+            mkdir -p /home/ubuntu/app
+            cd /home/ubuntu/app
+            git fetch --all
+            git checkout main
+            git pull origin main
+            npm install
+            pm2 delete my-aws-cicd-app || true
+            GIT_BRANCH=main pm2 start ecosystem.config.js
+
+      - name: Send approval email for dev deployment
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: "Main branch deployed successfully. Approve dev branch deployment"
+          body: "Main branch is live. Please approve dev deployment in GitHub Actions."
+          to: ${{ secrets.MAIL_RECEIVER }}
+          from: ${{ secrets.MAIL_USERNAME }}
