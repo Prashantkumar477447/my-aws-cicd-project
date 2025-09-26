@@ -1,4 +1,4 @@
-name: CI/CD Dev Branch Deployment
+name: CI-CD Dev Branch Deployment
 
 on:
   workflow_dispatch:  # Triggered manually after main branch approval
