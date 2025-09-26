@@ -1,11 +1,19 @@
 name: CI/CD Dev Branch Deployment
 
 on:
-  workflow_dispatch:  # Triggered manually after main branch approval
+  workflow_dispatch:
+    inputs:
+      confirm_deployment:
+        description: "Type YES to confirm deployment to the dev environment"
+        required: true
+        default: "NO"
 
 jobs:
   deploy-dev:
+    # Only proceed if the input is 'YES'
+    if: github.event.inputs.confirm_deployment == 'YES'
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout dev branch
         uses: actions/checkout@v4
@@ -19,10 +27,16 @@ jobs:
           username: ${{ secrets.AWS_USER }}
           key: ${{ secrets.AWS_KEY }}
           script: |
+            # Ensure the directory exists
             mkdir -p /home/ubuntu/dev_app
             cd /home/ubuntu/dev_app
-            git fetch --all
-            git checkout dev
+
+            # Pull latest changes from the dev branch
+            git init
+            git remote add origin https://github.com/${{ github.repository }}.git || true
+            git fetch origin dev
+            git checkout dev || git checkout -b dev
             git pull origin dev
-            # If HTML page only, copy files
+
+            # Optional: Copy files if it's a static site
             cp -r * /home/ubuntu/dev_app/
