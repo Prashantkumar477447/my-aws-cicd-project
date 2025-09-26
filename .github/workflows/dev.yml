@@ -2,17 +2,13 @@ name: CI/CD Dev Branch Deployment
 
 on:
   workflow_dispatch:
-    inputs:
-      confirm_deployment:
-        description: "Type YES to confirm deployment to the dev environment"
-        required: true
-        default: "NO"
 
 jobs:
   deploy-dev:
-    # Only proceed if the input is 'YES'
-    if: github.event.inputs.confirm_deployment == 'YES'
     runs-on: ubuntu-latest
+    environment:
+      name: dev   # 👈 Requires approval (set in repo Settings → Environments)
+      url: https://your-dev-app.example.com   # optional
 
     steps:
       - name: Checkout dev branch
@@ -27,16 +23,23 @@ jobs:
           username: ${{ secrets.AWS_USER }}
           key: ${{ secrets.AWS_KEY }}
           script: |
-            # Ensure the directory exists
             mkdir -p /home/ubuntu/dev_app
             cd /home/ubuntu/dev_app
 
-            # Pull latest changes from the dev branch
-            git init
-            git remote add origin https://github.com/${{ github.repository }}.git || true
+            if [ ! -d .git ]; then
+              git init
+              git remote add origin https://github.com/${{ github.repository }}.git || true
+            fi
             git fetch origin dev
             git checkout dev || git checkout -b dev
             git pull origin dev
 
-            # Optional: Copy files if it's a static site
-            cp -r * /home/ubuntu/dev_app/
+            if ! command -v node &> /dev/null; then
+              curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+              sudo apt-get update -y
+              sudo apt-get install -y nodejs
+            fi
+
+            npm install
+            pm2 delete my-aws-cicd-dev || true
+            pm2 start ecosystem.config.js --name my-aws-cicd-dev
