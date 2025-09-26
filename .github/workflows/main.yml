@@ -9,6 +9,7 @@ jobs:
   build-deploy-main:
     runs-on: ubuntu-latest
     steps:
+      # Checkout code locally for build
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -23,6 +24,7 @@ jobs:
       - name: Build application locally
         run: npm run build || echo "No build script, skipping"
 
+      # Deploy to EC2
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -50,7 +52,7 @@ jobs:
 
             # Clone repo if it doesn't exist
             if [ ! -d "app/.git" ]; then
-              git clone https://github.com/<owner>/<repo>.git app
+              git clone https://${{ secrets.GH_TOKEN }}@github.com/Prashantkumar477447/my-aws-cicd-project.git app
             fi
 
             cd app
@@ -67,6 +69,7 @@ jobs:
             pm2 delete my-aws-cicd-app || true
             GIT_BRANCH=main pm2 start ecosystem.config.js
 
+      # Send approval email for dev branch
       - name: Send approval email for dev deployment
         uses: dawidd6/action-send-mail@v3
         with:
