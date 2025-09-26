@@ -30,12 +30,36 @@ jobs:
           username: ${{ secrets.AWS_USER }}
           key: ${{ secrets.AWS_KEY }}
           script: |
-            mkdir -p /home/ubuntu/app
-            cd /home/ubuntu/app
+            #!/bin/bash
+            cd /home/ubuntu
+
+            # Install Node.js if not installed
+            if ! command -v node &> /dev/null; then
+              curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+              sudo apt-get install -y nodejs
+            fi
+
+            # Install PM2 if not installed
+            if ! command -v pm2 &> /dev/null; then
+              sudo npm install -g pm2
+            fi
+
+            # Clone repo if folder doesn't exist
+            if [ ! -d "app/.git" ]; then
+              git clone https://github.com/<owner>/<repo>.git app
+            fi
+
+            cd app
+
+            # Fetch and checkout main branch
             git fetch --all
             git checkout main
             git pull origin main
+
+            # Install dependencies
             npm install
+
+            # Start application using PM2
             pm2 delete my-aws-cicd-app || true
             GIT_BRANCH=main pm2 start ecosystem.config.js
 
