@@ -1,4 +1,4 @@
-name: CI/CD Main Branch Deployment
+name: CI-CD Main Branch Deployment
 
 on:
   push:
