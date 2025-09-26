@@ -24,50 +24,47 @@ jobs:
       - name: Build application locally
         run: npm run build || echo "No build script, skipping"
 
-      # Deploy to EC2
-      - name: Deploy to EC2
+      # Copy code to EC2 (no GH_TOKEN needed)
+      - name: Copy files to EC2
+        uses: appleboy/scp-action@v0.1.6
+        with:
+          host: ${{ secrets.AWS_HOST }}
+          username: ${{ secrets.AWS_USER }}
+          key: ${{ secrets.AWS_KEY }}
+          source: "."
+          target: "/home/ubuntu/app"
+          recursive: true
+          clean: true
+
+      # Install Node/PM2 & start app on EC2
+      - name: Start app on EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.AWS_HOST }}
           username: ${{ secrets.AWS_USER }}
           key: ${{ secrets.AWS_KEY }}
           script: |
-            #!/bin/bash
-            cd /home/ubuntu
-
-            # Set non-interactive frontend for apt
+            cd /home/ubuntu/app
             export DEBIAN_FRONTEND=noninteractive
 
-            # Install Node.js if not installed
+            # Install Node.js if missing
             if ! command -v node &> /dev/null; then
               curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
               sudo apt-get update -y
               sudo apt-get install -y nodejs
             fi
 
-            # Install PM2 if not installed
+            # Install PM2 if missing
             if ! command -v pm2 &> /dev/null; then
               sudo npm install -g pm2
             fi
 
-            # Clone repo if it doesn't exist
-            if [ ! -d "app/.git" ]; then
-              git clone https://${{ secrets.GH_TOKEN }}@github.com/Prashantkumar477447/my-aws-cicd-project.git app
-            fi
-
-            cd app
-
-            # Fetch and checkout main branch
-            git fetch --all
-            git checkout main
-            git pull origin main
-
             # Install project dependencies
             npm install
 
-            # Restart application using PM2
+            # Restart app using PM2
             pm2 delete my-aws-cicd-app || true
-            GIT_BRANCH=main pm2 start ecosystem.config.js
+            pm2 start ecosystem.config.js
 
       # Send approval email for dev branch
       - name: Send approval email for dev deployment
