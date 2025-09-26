@@ -1,0 +1,28 @@
+name: CI/CD Dev Branch Deployment
+
+on:
+  workflow_dispatch:  # Triggered manually after main branch approval
+
+jobs:
+  deploy-dev:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout dev branch
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+
+      - name: Deploy dev branch to EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.AWS_HOST }}
+          username: ${{ secrets.AWS_USER }}
+          key: ${{ secrets.AWS_KEY }}
+          script: |
+            mkdir -p /home/ubuntu/dev_app
+            cd /home/ubuntu/dev_app
+            git fetch --all
+            git checkout dev
+            git pull origin dev
+            # If HTML page only, copy files
+            cp -r * /home/ubuntu/dev_app/
