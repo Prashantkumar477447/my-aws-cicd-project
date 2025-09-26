@@ -12,15 +12,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
+      - name: Set up Node.js locally
         uses: actions/setup-node@v3
         with:
           node-version: '18'
 
-      - name: Install dependencies
+      - name: Install dependencies locally
         run: npm install
 
-      - name: Build application
+      - name: Build application locally
         run: npm run build || echo "No build script, skipping"
 
       - name: Deploy to EC2
@@ -33,9 +33,13 @@ jobs:
             #!/bin/bash
             cd /home/ubuntu
 
+            # Set non-interactive frontend for apt
+            export DEBIAN_FRONTEND=noninteractive
+
             # Install Node.js if not installed
             if ! command -v node &> /dev/null; then
               curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+              sudo apt-get update -y
               sudo apt-get install -y nodejs
             fi
 
@@ -44,7 +48,7 @@ jobs:
               sudo npm install -g pm2
             fi
 
-            # Clone repo if folder doesn't exist
+            # Clone repo if it doesn't exist
             if [ ! -d "app/.git" ]; then
               git clone https://github.com/<owner>/<repo>.git app
             fi
@@ -56,10 +60,10 @@ jobs:
             git checkout main
             git pull origin main
 
-            # Install dependencies
+            # Install project dependencies
             npm install
 
-            # Start application using PM2
+            # Restart application using PM2
             pm2 delete my-aws-cicd-app || true
             GIT_BRANCH=main pm2 start ecosystem.config.js
 
