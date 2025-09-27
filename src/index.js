@@ -1,8 +1,8 @@
 const express = require("express");
 const app = express();
 const port = process.env.PORT || 3000;
+const host = '0.0.0.0';  // Listen on all network interfaces
 
-// Get branch name from environment variable (set in GitHub Actions)
 const branch = process.env.GIT_BRANCH || "local";
 
 app.get("/", (req, res) => {
@@ -12,6 +12,7 @@ app.get("/", (req, res) => {
   `);
 });
 
-app.listen(port, () => {
-  console.log(`App listening on port ${port}`);
+app.listen(port, host, () => {
+  console.log(`App listening on http://${host}:${port}`);
 });
+
