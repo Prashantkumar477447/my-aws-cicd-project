@@ -13,14 +13,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # Set up Node.js locally
       - name: Set up Node.js locally
         uses: actions/setup-node@v3
         with:
           node-version: '18'
 
+      # Install dependencies locally
       - name: Install dependencies locally
         run: npm install
 
+      # Build application locally
       - name: Build application locally
         run: npm run build || echo "No build script, skipping"
 
